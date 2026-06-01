@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         val btnSync = findViewById<Button>(R.id.btn_sync_now)
         val progress = findViewById<ProgressBar>(R.id.progress_sync)
         val tvLastSync = findViewById<TextView>(R.id.tv_last_sync)
+        val tvError = findViewById<TextView>(R.id.tv_error)
 
         // Load saved settings
         etUrl.setText(prefs.getString("server_url", ""))
@@ -116,11 +117,15 @@ class MainActivity : AppCompatActivity() {
                             val ls = prefs.getLong("last_sync", 0L)
                             val ct = prefs.getInt("last_count", 0)
                             tvLastSync.text = getString(R.string.last_sync_info, DateFormat.getDateTimeInstance().format(Date(ls)), ct)
+                            tvError.visibility = View.GONE
                             Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show()
                         }
                         WorkInfo.State.FAILED -> {
                             btnSync.isEnabled = true
                             progress.visibility = View.GONE
+                            val err = prefs.getString("last_error", "") ?: ""
+                            tvError.text = "Erreur: $err"
+                            tvError.visibility = if (err.isNotBlank()) View.VISIBLE else View.GONE
                             Toast.makeText(this, getString(R.string.sync_failed), Toast.LENGTH_LONG).show()
                         }
                         else -> {}

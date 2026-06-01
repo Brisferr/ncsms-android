@@ -114,7 +114,16 @@
             android:id="@+id/tv_last_sync"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#CC0000"
+            android:visibility="gone" />
 
     </LinearLayout>
 </ScrollView>

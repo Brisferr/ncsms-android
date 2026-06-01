@@ -15,47 +15,75 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val username = prefs.getString("username", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
 
-        if (serverUrl.isBlank() || username.isBlank()) {
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            saveError(prefs, "Paramètres manquants (URL, utilisateur ou mot de passe vide)")
             return Result.failure()
         }
 
         if (ContextCompat.checkSelfPermission(
-                applicationContext,
-                android.Manifest.permission.READ_SMS
+                applicationContext, android.Manifest.permission.READ_SMS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            saveError(prefs, "Permission SMS non accordée")
             return Result.failure()
         }
 
         return try {
             val client = OcSmsClient(serverUrl, username, password)
-            val lastTs = client.getLastTimestamp()
+
+            val lastTs = try {
+                client.getLastTimestamp()
+            } catch (e: Exception) {
+                saveError(prefs, "Connexion échouée: ${e.javaClass.simpleName}: ${e.message}")
+                Log.e("NcSms", "getLastTimestamp failed", e)
+                return Result.failure()
+            }
+
             val messages = SmsReader.readSince(applicationContext, lastTs)
+            Log.d("NcSms", "Found ${messages.size} new messages since $lastTs")
 
             if (messages.isEmpty()) {
-                prefs.edit().putLong("last_sync", System.currentTimeMillis()).apply()
+                prefs.edit()
+                    .putLong("last_sync", System.currentTimeMillis())
+                    .putInt("last_count", 0)
+                    .putString("last_error", "")
+                    .apply()
                 return Result.success()
             }
 
-            val chunkSize = 200
-            var allOk = true
-            messages.chunked(chunkSize).forEach { chunk ->
-                if (!client.push(chunk)) allOk = false
+            var pushed = 0
+            for (chunk in messages.chunked(200)) {
+                val ok = try {
+                    client.push(chunk)
+                } catch (e: Exception) {
+                    saveError(prefs, "Envoi échoué: ${e.javaClass.simpleName}: ${e.message}")
+                    Log.e("NcSms", "push failed", e)
+                    return Result.failure()
+                }
+                if (!ok) {
+                    saveError(prefs, "Le serveur a refusé les messages (vérifiez l'URL et le mot de passe)")
+                    return Result.failure()
+                }
+                pushed += chunk.size
             }
 
-            if (allOk) {
-                prefs.edit()
-                    .putLong("last_sync", System.currentTimeMillis())
-                    .putInt("last_count", messages.size)
-                    .apply()
-                Result.success()
-            } else {
-                Result.retry()
-            }
+            prefs.edit()
+                .putLong("last_sync", System.currentTimeMillis())
+                .putInt("last_count", pushed)
+                .putString("last_error", "")
+                .apply()
+            Result.success()
+
         } catch (e: Exception) {
-            Log.e("NcSms", "Sync error", e)
-            Result.retry()
+            saveError(prefs, "Erreur inattendue: ${e.javaClass.simpleName}: ${e.message}")
+            Log.e("NcSms", "Unexpected sync error", e)
+            Result.failure()
         }
+    }
+
+    private fun saveError(prefs: android.content.SharedPreferences, msg: String) {
+        prefs.edit().putString("last_error", msg).apply()
+        Log.e("NcSms", "Sync error: $msg")
     }
 
     companion object {
@@ -65,36 +93,13 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
-
-            val request = PeriodicWorkRequestBuilder<SyncWorker>(
-                intervalHours, TimeUnit.HOURS
-            )
+            val request = PeriodicWorkRequestBuilder<SyncWorker>(intervalHours, TimeUnit.HOURS)
                 .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.MINUTES)
                 .build()
-
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                request
+                WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request
             )
-        }
-
-        fun runNow(context: Context): androidx.work.WorkContinuation {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
-            val request = OneTimeWorkRequestBuilder<SyncWorker>()
-                .setConstraints(constraints)
-                .build()
-
-            return WorkManager.getInstance(context)
-                .beginUniqueWork(
-                    "${WORK_NAME}_manual",
-                    ExistingWorkPolicy.REPLACE,
-                    request
-                )
         }
     }
 }
