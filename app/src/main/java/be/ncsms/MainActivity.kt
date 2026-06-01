@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
     private val smsPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        updatePermissionStatus()
         if (granted) scheduleSync()
         else Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show()
     }
