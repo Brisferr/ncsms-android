@@ -29,6 +29,8 @@ class OutboxWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
                 val success = trySend(smsManager, msg)
                 if (success) client.markSent(msg.id) else client.markFailed(msg.id)
             }
+            // Sync immediately so the sent SMS and any replies appear in ocsms
+            if (messages.isNotEmpty()) SyncWorker.runNow(applicationContext)
             Result.success()
         } catch (e: Exception) {
             Log.e("NcSms", "OutboxWorker error", e)

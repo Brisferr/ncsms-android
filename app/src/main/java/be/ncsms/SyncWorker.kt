@@ -87,7 +87,8 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
     }
 
     companion object {
-        const val WORK_NAME = "ncsms_sync"
+        const val WORK_NAME         = "ncsms_sync"
+        const val WORK_NAME_ONESHOT = "ncsms_sync_now"
 
         fun schedule(context: Context, intervalHours: Long = 1L) {
             OutboxWorker.schedulePeriodic(context)
@@ -100,6 +101,17 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request
+            )
+        }
+
+        fun runNow(context: Context) {
+            val request = OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build())
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                WORK_NAME_ONESHOT, ExistingWorkPolicy.REPLACE, request
             )
         }
     }
