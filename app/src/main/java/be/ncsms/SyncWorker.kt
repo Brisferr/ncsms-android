@@ -67,6 +67,9 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
                 pushed += chunk.size
             }
 
+            // Purge sent queue entries — they're now in smsdatas, no more duplicates in UI
+            try { client.purgeSentQueue() } catch (e: Exception) { /* non-fatal */ }
+
             prefs.edit()
                 .putLong("last_sync", System.currentTimeMillis())
                 .putInt("last_count", pushed)

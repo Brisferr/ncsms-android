@@ -116,6 +116,12 @@ class OcSmsClient(private val baseUrl: String, username: String, password: Strin
         client.newCall(req).execute().use { resp -> return resp.isSuccessful }
     }
 
+    fun purgeSentQueue(): Boolean {
+        val req = Request.Builder().url(url("/api/v4/messages/sendqueue/purge-sent"))
+            .post("".toRequestBody(null)).build()
+        client.newCall(req).execute().use { resp -> return resp.isSuccessful }
+    }
+
     fun push(messages: List<SmsEntry>): Boolean {
         if (messages.isEmpty()) return true
         val payload = PushPayload(messages.size, messages)
