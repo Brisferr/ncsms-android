@@ -15,9 +15,14 @@ import org.unifiedpush.android.connector.UnifiedPush
 import java.text.DateFormat
 import java.util.Date
 
+private const val PREF_UP_DISTRIBUTOR = "up_distributor"
+
 class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences("ncsms", Context.MODE_PRIVATE) }
+
+    // Parallel list to spinner entries: package names of available distributors
+    private var distributorPackages: List<String> = emptyList()
 
     // Request READ_SMS + SEND_SMS together — both are needed for full functionality
     private val smsPermissionLauncher = registerForActivityResult(
@@ -44,6 +49,9 @@ class MainActivity : AppCompatActivity() {
         val etUser = findViewById<EditText>(R.id.et_username)
         val etPass = findViewById<EditText>(R.id.et_password)
         val spinner = findViewById<Spinner>(R.id.spinner_interval)
+        val spinnerDist = findViewById<Spinner>(R.id.spinner_distributor)
+        val btnRefreshDist = findViewById<Button>(R.id.btn_refresh_distributors)
+        val tvPushStatus = findViewById<TextView>(R.id.tv_push_status)
         val btnSave = findViewById<Button>(R.id.btn_save)
         val btnSync = findViewById<Button>(R.id.btn_sync_now)
         val progress = findViewById<ProgressBar>(R.id.progress_sync)
@@ -56,6 +64,31 @@ class MainActivity : AppCompatActivity() {
         etPass.setText(prefs.getString("password", ""))
         val interval = prefs.getLong("interval_hours", 1L)
         spinner.setSelection(when (interval) { 6L -> 1; 24L -> 2; else -> 0 })
+
+        // UnifiedPush distributor spinner
+        fun loadDistributors() {
+            distributorPackages = UnifiedPush.getDistributors(this)
+            val savedPkg = prefs.getString(PREF_UP_DISTRIBUTOR, "") ?: ""
+            val labels = if (distributorPackages.isEmpty())
+                listOf(getString(R.string.push_none_found))
+            else
+                distributorPackages.map { it.substringAfterLast('.') } // friendly name from package
+            spinnerDist.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+            val savedIdx = distributorPackages.indexOf(savedPkg).takeIf { it >= 0 } ?: 0
+            if (distributorPackages.isNotEmpty()) spinnerDist.setSelection(savedIdx)
+
+            val endpoint = prefs.getString("up_endpoint", "") ?: ""
+            tvPushStatus.text = when {
+                distributorPackages.isEmpty() -> getString(R.string.push_status_none)
+                endpoint.isNotBlank() -> getString(R.string.push_status_registered,
+                    savedPkg.substringAfterLast('.'))
+                savedPkg.isNotBlank() -> getString(R.string.push_status_no_endpoint)
+                else -> getString(R.string.push_status_none)
+            }
+        }
+        loadDistributors()
+
+        btnRefreshDist.setOnClickListener { loadDistributors() }
 
         // Permission status
         fun updatePerm() {
@@ -91,11 +124,17 @@ class MainActivity : AppCompatActivity() {
                 .putString("password", pass)
                 .putLong("interval_hours", hrs)
                 .apply()
+            // Save selected UP distributor and register
+            val selectedIdx = spinnerDist.selectedItemPosition
+            if (distributorPackages.isNotEmpty() && selectedIdx < distributorPackages.size) {
+                val pkg = distributorPackages[selectedIdx]
+                prefs.edit().putString(PREF_UP_DISTRIBUTOR, pkg).apply()
+                UnifiedPush.saveDistributor(this, pkg)
+            }
             Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             scheduleSync()
-            // (Re-)register with the UnifiedPush distributor now that credentials are set.
-            // UnifiedPush will call onNewEndpoint → registers endpoint with Nextcloud.
             UnifiedPush.registerApp(this)
+            loadDistributors()
         }
 
         btnSync.setOnClickListener {
@@ -149,10 +188,10 @@ class MainActivity : AppCompatActivity() {
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // If already configured, (re-)register with UnifiedPush on every startup.
-        // This is a no-op if the endpoint hasn't changed; it ensures the endpoint
-        // is re-registered after an app update or distributor restart.
-        if (!prefs.getString("server_url", "").isNullOrBlank()) {
+        // If a distributor was previously saved, re-register on startup.
+        val savedDist = prefs.getString(PREF_UP_DISTRIBUTOR, "") ?: ""
+        if (savedDist.isNotBlank() && !prefs.getString("server_url", "").isNullOrBlank()) {
+            UnifiedPush.saveDistributor(this, savedDist)
             UnifiedPush.registerApp(this)
         }
     }

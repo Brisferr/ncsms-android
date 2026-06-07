@@ -19,6 +19,12 @@
     <string name="permission_denied">Permission SMS refusée — l\'app ne peut pas lire les SMS</string>
     <string name="grant_permission">Accorder la permission SMS</string>
     <string name="app_password_hint">Conseil: utilisez un App Password Nextcloud (Paramètres → Sécurité) plutôt que votre mot de passe principal.</string>
+    <string name="label_push_distributor">Distributeur UnifiedPush</string>
+    <string name="push_none_found">Aucun distributeur trouvé</string>
+    <string name="push_status_none">Push désactivé — installez ntfy ou un autre distributeur UP</string>
+    <string name="push_status_registered">✓ Push actif via %1$s</string>
+    <string name="push_status_no_endpoint">Distributeur sélectionné, en attente d\'enregistrement…</string>
+    <string name="refresh">↺</string>
 
     <string-array name="sync_intervals">
         <item>Toutes les heures</item>
