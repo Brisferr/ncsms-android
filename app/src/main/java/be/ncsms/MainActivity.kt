@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.work.*
+import org.unifiedpush.android.connector.UnifiedPush
 import java.text.DateFormat
 import java.util.Date
 
@@ -18,11 +19,15 @@ class MainActivity : AppCompatActivity() {
 
     private val prefs by lazy { getSharedPreferences("ncsms", Context.MODE_PRIVATE) }
 
+    // Request READ_SMS + SEND_SMS together — both are needed for full functionality
     private val smsPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) scheduleSync()
-        else Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show()
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results[Manifest.permission.READ_SMS] == true) {
+            scheduleSync()
+        } else {
+            Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_LONG).show()
+        }
     }
 
     private val notifPermissionLauncher = registerForActivityResult(
@@ -68,7 +73,7 @@ class MainActivity : AppCompatActivity() {
             else getString(R.string.last_sync_info, DateFormat.getDateTimeInstance().format(Date(lastSync)), count)
 
         btnGrant.setOnClickListener {
-            smsPermissionLauncher.launch(Manifest.permission.READ_SMS)
+            smsPermissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS))
         }
 
         btnSave.setOnClickListener {
@@ -88,10 +93,16 @@ class MainActivity : AppCompatActivity() {
                 .apply()
             Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             scheduleSync()
+            // (Re-)register with the UnifiedPush distributor now that credentials are set.
+            // UnifiedPush will call onNewEndpoint → registers endpoint with Nextcloud.
+            UnifiedPush.registerApp(this)
         }
 
         btnSync.setOnClickListener {
-            if (!hasSmsPermission()) { smsPermissionLauncher.launch(Manifest.permission.READ_SMS); return@setOnClickListener }
+            if (!hasSmsPermission()) {
+                smsPermissionLauncher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS))
+                return@setOnClickListener
+            }
             if (prefs.getString("server_url", "").isNullOrBlank()) {
                 Toast.makeText(this, getString(R.string.save_settings_first), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -136,6 +147,13 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        // If already configured, (re-)register with UnifiedPush on every startup.
+        // This is a no-op if the endpoint hasn't changed; it ensures the endpoint
+        // is re-registered after an app update or distributor restart.
+        if (!prefs.getString("server_url", "").isNullOrBlank()) {
+            UnifiedPush.registerApp(this)
         }
     }
 

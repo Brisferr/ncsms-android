@@ -90,6 +90,7 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         const val WORK_NAME = "ncsms_sync"
 
         fun schedule(context: Context, intervalHours: Long = 1L) {
+            OutboxWorker.schedulePeriodic(context)
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()

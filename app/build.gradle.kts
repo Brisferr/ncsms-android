@@ -43,4 +43,5 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.workmanager.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.unifiedpush)
 }

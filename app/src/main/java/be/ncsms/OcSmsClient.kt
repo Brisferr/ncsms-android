@@ -14,6 +14,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
+data class OutboxMessage(val id: Int, val address: String, val msg: String)
+
 data class SmsEntry(
     val _id: Long,
     val address: String,
@@ -73,6 +75,45 @@ class OcSmsClient(private val baseUrl: String, username: String, password: Strin
                 0L
             }
         }
+    }
+
+    fun getOutboxMessages(): List<OutboxMessage> {
+        val req = Request.Builder().url(url("/api/v4/messages/sendqueue")).get().build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) throw Exception("HTTP ${resp.code}")
+            val body = resp.body?.string() ?: return emptyList()
+            val arr = gson.fromJson(body, JsonObject::class.java)
+                .getAsJsonArray("messages") ?: return emptyList()
+            return arr.map { el ->
+                val o = el.asJsonObject
+                OutboxMessage(
+                    id      = o.get("id").asInt,
+                    address = o.get("address").asString,
+                    msg     = o.get("msg").asString
+                )
+            }
+        }
+    }
+
+    fun markSent(id: Int): Boolean = postStatus(id, "sent")
+    fun markFailed(id: Int): Boolean = postStatus(id, "failed")
+
+    private fun postStatus(id: Int, status: String): Boolean {
+        val req = Request.Builder().url(url("/api/v4/messages/sendqueue/$id/$status"))
+            .post("".toRequestBody(null)).build()
+        client.newCall(req).execute().use { resp -> return resp.isSuccessful }
+    }
+
+    fun registerPushEndpoint(endpoint: String): Boolean {
+        val body = gson.toJson(mapOf("endpoint" to endpoint)).toRequestBody(jsonMedia)
+        val req = Request.Builder().url(url("/api/v4/device/register")).post(body).build()
+        client.newCall(req).execute().use { resp -> return resp.isSuccessful }
+    }
+
+    fun unregisterPushEndpoint(endpoint: String): Boolean {
+        val body = gson.toJson(mapOf("endpoint" to endpoint)).toRequestBody(jsonMedia)
+        val req = Request.Builder().url(url("/api/v4/device/unregister")).post(body).build()
+        client.newCall(req).execute().use { resp -> return resp.isSuccessful }
     }
 
     fun push(messages: List<SmsEntry>): Boolean {
