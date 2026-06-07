@@ -8,7 +8,7 @@ okhttp = "4.12.0"
 gson = "2.10.1"
 workmanager = "2.9.0"
 lifecycle = "2.8.2"
-unifiedpush = "2.4.0"
+unifiedpush = "2.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
