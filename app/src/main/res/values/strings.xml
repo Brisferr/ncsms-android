@@ -1,34 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NcSMS Sync</string>
-    <string name="hint_server_url">URL Nextcloud (ex: https://cloud.example.com)</string>
-    <string name="hint_username">Nom d\'utilisateur</string>
-    <string name="hint_password">Mot de passe ou App Password</string>
-    <string name="label_interval">Synchronisation automatique</string>
-    <string name="save_settings">Enregistrer</string>
-    <string name="sync_now">Synchroniser maintenant</string>
-    <string name="fill_all_fields">Veuillez remplir tous les champs</string>
-    <string name="settings_saved">Paramètres enregistrés</string>
-    <string name="sync_success">Synchronisation réussie</string>
-    <string name="sync_failed">Erreur de synchronisation — vérifiez les paramètres</string>
-    <string name="save_settings_first">Enregistrez d\'abord vos paramètres</string>
-    <string name="never_synced">Jamais synchronisé</string>
-    <string name="last_sync_info">Dernière sync: %1$s (%2$d messages)</string>
-    <string name="permission_granted">✓ Permission SMS accordée</string>
-    <string name="permission_missing">⚠ Permission SMS manquante</string>
-    <string name="permission_denied">Permission SMS refusée — l\'app ne peut pas lire les SMS</string>
-    <string name="grant_permission">Accorder la permission SMS</string>
-    <string name="app_password_hint">Conseil: utilisez un App Password Nextcloud (Paramètres → Sécurité) plutôt que votre mot de passe principal.</string>
-    <string name="label_push_distributor">Distributeur UnifiedPush</string>
-    <string name="push_none_found">Aucun distributeur trouvé</string>
-    <string name="push_status_none">Push désactivé — installez ntfy ou un autre distributeur UP</string>
-    <string name="push_status_registered">✓ Push actif via %1$s</string>
-    <string name="push_status_no_endpoint">Distributeur sélectionné, en attente d\'enregistrement…</string>
+    <string name="hint_server_url">Nextcloud URL (e.g. https://cloud.example.com)</string>
+    <string name="hint_username">Username</string>
+    <string name="hint_password">Password or App Password</string>
+    <string name="label_interval">Automatic sync</string>
+    <string name="save_settings">Save</string>
+    <string name="sync_now">Sync now</string>
+    <string name="fill_all_fields">Please fill in all fields</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="sync_success">Sync successful</string>
+    <string name="sync_failed">Sync error — check your settings</string>
+    <string name="save_settings_first">Save your settings first</string>
+    <string name="never_synced">Never synced</string>
+    <string name="last_sync_info">Last sync: %1$s (%2$d messages)</string>
+    <string name="permission_granted">✓ SMS permission granted</string>
+    <string name="permission_missing">⚠ SMS permission missing</string>
+    <string name="permission_denied">SMS permission denied — the app cannot read SMS</string>
+    <string name="grant_permission">Grant SMS permission</string>
+    <string name="app_password_hint">Tip: use a Nextcloud App Password (Settings → Security) instead of your main password.</string>
+    <string name="label_push_distributor">UnifiedPush distributor</string>
+    <string name="push_none_found">No distributor found</string>
+    <string name="push_status_none">Push disabled — install ntfy or another UP distributor</string>
+    <string name="push_status_registered">✓ Push active via %1$s</string>
+    <string name="push_status_no_endpoint">Distributor selected, waiting for registration…</string>
     <string name="refresh">↺</string>
 
     <string-array name="sync_intervals">
-        <item>Toutes les heures</item>
-        <item>Toutes les 6 heures</item>
-        <item>Une fois par jour</item>
+        <item>Every hour</item>
+        <item>Every 6 hours</item>
+        <item>Once a day</item>
     </string-array>
 </resources>
